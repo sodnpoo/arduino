@@ -8,18 +8,20 @@
 #include <Servo.h> 
 #include <SoftwareSerial.h>
 
-/* LCD */
-const int LCDPIN = 16;
-SoftwareSerial LCD = SoftwareSerial(LCDPIN,LCDPIN);
-const byte LCDLINE1 = 0x80;
-const byte LCDLINE2 = 0xC0;
-/* Scanner */
+/* Motors */
+const int MOTORA1PIN = 3;
+const int MOTORA2PIN = 5;
+const int MOTORB1PIN = 6;
+const int MOTORB2PIN = 9;
 
+/* Scanner */
+const int SCANIRPIN = 7;
 const int SCANSERVOPIN = 7;
-const int SCANMINANGLE = 60;
-const int SCANMAXANGLE = 120;
-const int SCANSTEP = (SCANMAXANGLE - SCANMINANGLE) / 8;
-const int SCANRATE = 1000;
+const int SCANMINANGLE = 50;
+const int SCANMAXANGLE = 130;
+const int SCANSTEPS = 10;
+const int SCANSTEP = (SCANMAXANGLE - SCANMINANGLE) / SCANSTEPS;
+const int SCANRATE = 50;
 const byte SD_FWD = 0;
 const byte SD_REV = 1;
 
@@ -28,12 +30,18 @@ struct tScanner {
   int scanPos;
   byte scanDir;
   Timer scanTimer;
+  int distances[SCANSTEPS+1];
+  int distance;
 };
 
 void initScanner(struct tScanner *scanner){
   scanner->scanPos = SCANMINANGLE;
   scanner->scanDir = SD_FWD;  
   scanner->scanServo.attach(SCANSERVOPIN);
+  for(int i=0;i<SCANSTEPS;i++){
+    scanner->distances[i] = 0;
+  }
+  scanner->distance = 0;
   newTimer(&scanner->scanTimer, SCANRATE);
 }
 
@@ -48,55 +56,70 @@ void setup(){
   Serial.begin(9600);
   Serial.println("setup");
   
-  pinMode(LCDPIN, OUTPUT);
-  LCD.begin(9600);
-
   pinMode(LEDPIN, OUTPUT);
   digitalWrite(LEDPIN, LOW);
 
+  pinMode(MOTORA1PIN,OUTPUT);
+  pinMode(MOTORA2PIN,OUTPUT);
+  pinMode(MOTORB1PIN,OUTPUT);
+  pinMode(MOTORB2PIN,OUTPUT);
+
   initScanner(&scanner);
+ 
+  Forward();
 }
 
+Timer evadeTimer;
+boolean scannerPause = false;
 void loop(){
   if( checkTimer(&scanner.scanTimer) ){
-    switch(scanner.scanDir){
-      case SD_FWD:
-        scanner.scanPos += SCANSTEP;
-        if(scanner.scanPos > SCANMAXANGLE - SCANSTEP){
-          scanner.scanDir = SD_REV;
-          flipLed(LEDPIN);
-        }
-      break;
-      case SD_REV:
-        scanner.scanPos -= SCANSTEP;
-        if(scanner.scanPos < SCANMINANGLE + SCANSTEP){
-          scanner.scanDir = SD_FWD;
-          flipLed(LEDPIN);
-        }        
-      break;
+    if( !scannerPause ){
+      switch(scanner.scanDir){
+        case SD_FWD:
+          scanner.scanPos += SCANSTEP;
+          //scanner.distance++;
+          if(scanner.scanPos > SCANMAXANGLE - SCANSTEP){
+            scanner.scanDir = SD_REV;
+            flipLed(LEDPIN);
+          }
+        break;
+        case SD_REV:
+          scanner.scanPos -= SCANSTEP;
+          //scanner.distance--;
+          if(scanner.scanPos < SCANMINANGLE + SCANSTEP){
+            scanner.scanDir = SD_FWD;
+            flipLed(LEDPIN);
+          }        
+        break;
+      }      
+      scanner.scanServo.write(scanner.scanPos);    
     }
-    Serial.print("scanPos:");
-    Serial.println(scanner.scanPos);
-    LCD_Show_Text(&LCD, LCDLINE1, "scanPos:");
-    LCD_Show_Int(&LCD, LCDLINE2, scanner.scanPos);
-    scanner.scanServo.write(scanner.scanPos);
+    scanner.distance = analogRead(SCANIRPIN);
+
+    if(scanner.distance > 100){ //too close!
+      scannerPause = true;
+      if(scanner.scanPos > 90){
+        Serial.println("left!");
+        Spin_Right();
+        newTimer(&evadeTimer, 50);
+      }else
+      if(scanner.scanPos < 90){
+        Serial.println("right!");  
+        Spin_Left();      
+        newTimer(&evadeTimer, 60);
+      }else{
+        Serial.println("middle!");
+        Backward();
+        newTimer(&evadeTimer, 300);
+      }
+    }
   }
-
-}
-
-/** SLCD Function **/
-void LCD_Show_Int(SoftwareSerial *serial, byte Position,int x){
-  LCD_Clear(serial);
-  serial->print(Position,BYTE);
-  serial->print(x,DEC);
-}
-void LCD_Show_Text(SoftwareSerial *serial, byte Position,char* x){
-  LCD_Clear(serial);
-  serial->print(Position,BYTE);
-  serial->print(x);
-}
-void LCD_Clear(SoftwareSerial *serial){
-  serial->print(0xFE,BYTE);
+  
+  if( checkTimer(&evadeTimer) ){
+    disableTimer(&evadeTimer);
+    scannerPause = false;
+    Forward();
+  }
 }
 
 /* LED */
@@ -106,5 +129,37 @@ void flipLed(int ledPin){
   }else{
     digitalWrite(ledPin, LOW);     
   }
+}
+
+/* Motors */
+void Forward(){
+  digitalWrite(MOTORA1PIN,HIGH);
+  digitalWrite(MOTORA2PIN,LOW);
+  digitalWrite(MOTORB1PIN,HIGH);
+  digitalWrite(MOTORB2PIN,LOW);
+}
+void Backward(){
+  digitalWrite(MOTORA1PIN,LOW);
+  digitalWrite(MOTORA2PIN,HIGH);
+  digitalWrite(MOTORB1PIN,LOW);
+  digitalWrite(MOTORB2PIN,HIGH);
+}
+void Spin_Left(){
+  digitalWrite(MOTORA1PIN,LOW);
+  digitalWrite(MOTORA2PIN,HIGH);
+  digitalWrite(MOTORB1PIN,HIGH);
+  digitalWrite(MOTORB2PIN,LOW);
+}
+void Spin_Right(){
+  digitalWrite(MOTORA1PIN,HIGH);
+  digitalWrite(MOTORA2PIN,LOW);
+  digitalWrite(MOTORB1PIN,LOW);
+  digitalWrite(MOTORB2PIN,HIGH);
+}
+void Motor_Stop(){
+  digitalWrite(MOTORA1PIN,LOW);
+  digitalWrite(MOTORA2PIN,LOW);
+  digitalWrite(MOTORB1PIN,LOW);
+  digitalWrite(MOTORB2PIN,LOW);
 }
 
