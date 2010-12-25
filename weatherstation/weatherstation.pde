@@ -31,7 +31,7 @@ void setup(){
   digitalWrite(LEDPIN, LOW);
 
   pinMode(PHOTOPIN, INPUT);
-  attachInterrupt(PHOTOPIN, blink, FALLING);
+  // attachInterrupt(PHOTOPIN, blink, FALLING);
   
   newTimer(&dumpTimer, DUMPRATE);
   
@@ -47,16 +47,18 @@ void blink()
 void loop(){
   if( checkTimer(&dumpTimer) ){
     Serial.print("counter:");
-    Serial.println(counter);
+    Serial.print(counter);
     
     int speed = counter;
     counter = 0;
     
     int degreesC = LM335toDegreesC(analogRead(LM335PIN), -4);
 
+    Serial.print('/');
+
     Serial.print("degreesC:");
-    Serial.println(degreesC);
-    
+    Serial.print(degreesC);
+    Serial.println();
   }
 
   digitalWrite(LEDPIN, state);
