@@ -26,31 +26,31 @@ const byte SD_FWD = 0;
 const byte SD_REV = 1;
 
 struct tScanner {
-  Servo scanServo;
-  int scanPos;
-  byte scanDir;
-  Timer scanTimer;
+  Servo servo;
+  int pos;
+  byte direction;
+  Timer timer;
   int distances[SCANSTEPS+1];
   int distance;
+  boolean hold;
 };
 
 void initScanner(struct tScanner *scanner){
-  scanner->scanPos = SCANMINANGLE;
-  scanner->scanDir = SD_FWD;  
-  scanner->scanServo.attach(SCANSERVOPIN);
+  scanner->pos = SCANMINANGLE;
+  scanner->direction = SD_FWD;  
+  scanner->hold = false;
+  scanner->servo.attach(SCANSERVOPIN);
   for(int i=0;i<SCANSTEPS;i++){
     scanner->distances[i] = 0;
   }
   scanner->distance = 0;
-  newTimer(&scanner->scanTimer, SCANRATE);
+  newTimer(&scanner->timer, SCANRATE);
 }
 
 tScanner scanner;
 
 //status LED
 const int LEDPIN = 13;
-
-//dump data timer
 
 void setup(){
   Serial.begin(9600);
@@ -70,45 +70,42 @@ void setup(){
 }
 
 Timer evadeTimer;
-boolean scannerPause = false;
+
 void loop(){
-  if( checkTimer(&scanner.scanTimer) ){
-    if( !scannerPause ){
-      switch(scanner.scanDir){
+  if( checkTimer(&scanner.timer) ){
+    if( !scanner.hold ){
+      switch(scanner.direction){
         case SD_FWD:
-          scanner.scanPos += SCANSTEP;
+          scanner.pos += SCANSTEP;
           //scanner.distance++;
-          if(scanner.scanPos > SCANMAXANGLE - SCANSTEP){
-            scanner.scanDir = SD_REV;
+          if(scanner.pos > SCANMAXANGLE - SCANSTEP){
+            scanner.direction = SD_REV;
             flipLed(LEDPIN);
           }
         break;
         case SD_REV:
-          scanner.scanPos -= SCANSTEP;
+          scanner.pos -= SCANSTEP;
           //scanner.distance--;
-          if(scanner.scanPos < SCANMINANGLE + SCANSTEP){
-            scanner.scanDir = SD_FWD;
+          if(scanner.pos < SCANMINANGLE + SCANSTEP){
+            scanner.direction = SD_FWD;
             flipLed(LEDPIN);
           }        
         break;
       }      
-      scanner.scanServo.write(scanner.scanPos);    
+      scanner.servo.write(scanner.pos);    
     }
     scanner.distance = analogRead(SCANIRPIN);
 
     if(scanner.distance > 100){ //too close!
-      scannerPause = true;
-      if(scanner.scanPos > 90){
-        Serial.println("left!");
+      scanner.hold = true;
+      if(scanner.pos > 90){
         Spin_Right();
         newTimer(&evadeTimer, 50);
       }else
-      if(scanner.scanPos < 90){
-        Serial.println("right!");  
+      if(scanner.pos < 90){
         Spin_Left();      
-        newTimer(&evadeTimer, 60);
+        newTimer(&evadeTimer, 50);
       }else{
-        Serial.println("middle!");
         Backward();
         newTimer(&evadeTimer, 300);
       }
@@ -117,7 +114,7 @@ void loop(){
   
   if( checkTimer(&evadeTimer) ){
     disableTimer(&evadeTimer);
-    scannerPause = false;
+    scanner.hold = false;
     Forward();
   }
 }
