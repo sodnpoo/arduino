@@ -43,21 +43,24 @@ void getGyroscopeData()
   *************************************/
 
   int regAddress = 0x1D;
-  int x, y, z;
+  double x, y, z;
   byte buff[TO_READ];
   char str[50]; // 50 should be enough to store all the data from the
 
   readFrom(GYRO_ADDR, regAddress, TO_READ, buff); //read the gyro data from the ITG3200
 
-  x = (buff[0] << 8) | buff[1];
-  y = (buff[2] << 8) | buff[3];
-  z = (buff[4] << 8) | buff[5];
+  x = ((buff[0] << 8) | buff[1]) / 14.375;
+  y = ((buff[2] << 8) | buff[3]) / 14.375;
+  z = ((buff[4] << 8) | buff[5]) / 14.375;
 
-  //we send the x y z values as a string to the serial port
-  sprintf(str, "%d,%d,%d", x, y, z);
-  Serial.print(str);
-  Serial.print(10, BYTE);
-
+  Serial.print(" X: ");
+  Serial.print(x);
+  Serial.print(" Y: ");
+  Serial.print(y);
+  Serial.print(" Z: ");
+  Serial.print(z);
+  
+  Serial.println();
 }
 
 
@@ -72,7 +75,7 @@ void setup()
 void loop()
 {
   getGyroscopeData();
-  delay(500);
+  delay(1000);
 }
 
 
