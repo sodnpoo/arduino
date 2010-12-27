@@ -7,9 +7,11 @@ struct Smoothed{
   int readings[MAXSMOOTHS];
   int index;
   int total;
+  int max;
 };
-void newSmoothed(struct Smoothed *smooth){
-  for(int i=0;i<MAXSMOOTHS;i++){
+void newSmoothed(struct Smoothed *smooth, int maxsmooths){
+  smooth->max = maxsmooths;
+  for(int i=0; i < smooth->max; i++){
     smooth->readings[i] = 0; 
   }
   smooth->index = 0;
@@ -19,10 +21,10 @@ int smoothReading(struct Smoothed *smooth, int reading){
   smooth->readings[smooth->index] = reading;
   smooth->total = smooth->total + smooth->readings[smooth->index];
   smooth->index++;
-  if(smooth->index >= MAXSMOOTHS){
+  if(smooth->index >= smooth->max){
     smooth->index = 0;
   }
-  return smooth->total / MAXSMOOTHS;
+  return smooth->total / smooth->max;
 }
 
 #endif

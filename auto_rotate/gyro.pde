@@ -26,15 +26,16 @@ void initGyro()
 
   writeTo(GYRO_ADDR, PWR_MGM, 0x00);
 //  writeTo(GYRO_ADDR, SMPLRT_DIV, 0xFF); // EB, 50, 80, 7F, DE, 23, 20, FF
-  writeTo(GYRO_ADDR, SMPLRT_DIV, 00); // EB, 50, 80, 7F, DE, 23, 20, FF
+  writeTo(GYRO_ADDR, SMPLRT_DIV, 99); // EB, 50, 80, 7F, DE, 23, 20, FF
 //  writeTo(GYRO_ADDR, DLPF_FS, 0x1E); // +/- 2000 dgrs/sec, 1KHz, 1E, 19
-  writeTo(GYRO_ADDR, DLPF_FS, B11001); // +/- 2000 dgrs/sec, 1KHz, 1E, 19
+  writeTo(GYRO_ADDR, DLPF_FS, B11110); // +/- 2000 dgrs/sec, 1KHz, 1E, 19
   writeTo(GYRO_ADDR, INT_CFG, 0x00);
 
 }
 
 
-void getGyroscopeData(double *x, double *y, double *z)
+//void getGyroscopeData(double *x, double *y, double *z)
+void getGyroscopeData(int *x, int *y, int *z)
 {
   /**************************************
   Gyro ITG-3200 I2C
@@ -54,11 +55,11 @@ void getGyroscopeData(double *x, double *y, double *z)
   *x = ((buff[0] << 8) | buff[1]);// / 14.375;
   *y = ((buff[2] << 8) | buff[3]);// / 14.375;
   *z = ((buff[4] << 8) | buff[5]);// / 14.375;
-  
-  *x += 16;
-  *y -= 18;
-  *z += 25;
-  
+/*
+  *x += 22;
+  *y -= 29;
+  *z += 19;
+*/
 /*
   x = ((buff[0] << 8) | buff[1]);
   y = ((buff[2] << 8) | buff[3]);
@@ -74,17 +75,19 @@ void getGyroscopeData(double *x, double *y, double *z)
   Serial.println();
 }
 
-
+/*
 void setup()
 {
   Serial.begin(9600);
   Wire.begin();
   initGyro();
 }
-
+*/
+/*
 int i = 0;
 double X, Y, Z = 0;
-
+*/
+/*
 void loop()
 {
   double x, y, z;
@@ -114,7 +117,7 @@ void loop()
   }
   i++;
 }
-
+*/
 
 //---------------- Functions
 //Writes val to address register on device

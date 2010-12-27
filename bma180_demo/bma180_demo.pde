@@ -26,7 +26,7 @@ void loop()
   Serial.print(Z);
 
   Serial.println();
-  delay(500);
+  delay(100);
 }
 
 int x;
