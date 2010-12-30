@@ -9,6 +9,9 @@
 #include <Servo.h> 
 #include <SoftwareSerial.h>
 
+/* LCD */
+const int LCDPIN = 16;
+
 /* Motors */
 const int MOTORA1PIN = 3;
 const int MOTORA2PIN = 5;
@@ -57,11 +60,22 @@ const int LEDPIN = 13;
 Timer rotationTimer;
 Smoothed Zsmooth;
 
+SoftwareSerial lcd = SoftwareSerial(LCDPIN, LCDPIN);
+
+Timer dumpTimer;
+Timer accelTimer;
 
 void setup(){
   Serial.begin(9600);
   Serial.println("setup");
-  
+
+  //LCD  
+  digitalWrite(LCDPIN, HIGH);
+  delay(1000);
+  pinMode(LCDPIN, OUTPUT);
+  lcd.begin(9600);
+  delay(1000);
+
   pinMode(LEDPIN, OUTPUT);
   digitalWrite(LEDPIN, LOW);
 
@@ -83,13 +97,21 @@ void setup(){
   Forward();
 */
   newTimer(&rotationTimer, 100);
+  newTimer(&dumpTimer, 500);
+
+  //BMA180  
+  initBMA180();
+  delay(2000);
+  newTimer(&accelTimer, 100);
+  
 }
 
 Timer evadeTimer;
 int i = 1;
 //double X, Y, Z = 0;
 int X, Y, Z = 0;
-int zOffset = 0;
+int xOffset, yOffset, zOffset = 0;
+int accelX, accelY, accelZ = 0;
 
 Timer motorStopTimer;
 
@@ -100,18 +122,73 @@ void loop(){
     disableTimer(&motorStopTimer);
   }
 
+  if( checkTimer(&accelTimer) ){
+    accelX = readAccel(0x03, 0x02);
+    accelY = readAccel(0x05, 0x04);
+    accelZ = readAccel(0x07, 0x06);
+  }
+
+  if( checkTimer(&dumpTimer) ){
+    lcd.print(0xFE,BYTE);
+    lcd.print(0x01,BYTE);
+    
+    int intX = X / 143.75;
+    lcd.print(0xFE,BYTE);
+    lcd.print(0x80,BYTE);
+    lcd.print(intX);
+
+    int intY = Y / 143.75;
+    lcd.print(0xFE,BYTE);
+    lcd.print(0x85,BYTE);
+    lcd.print(intY);
+
+    int intZ = Z / 143.75;
+    lcd.print(0xFE,BYTE);
+    lcd.print(0x8A,BYTE);
+    lcd.print(intZ);
+    
+    lcd.print(0xFE,BYTE);
+    lcd.print(0xC0,BYTE);
+    lcd.print(accelX);
+
+    lcd.print(0xFE,BYTE);
+    lcd.print(0xC5,BYTE);
+    lcd.print(accelY);
+
+    lcd.print(0xFE,BYTE);
+    lcd.print(0xCA,BYTE);
+    lcd.print(accelZ);
+  }
+
   if( checkTimer(&rotationTimer) ){
 //    double x, y, z;    
     int x, y, z;    
     getGyroscopeData(&x, &y, &z);      
+    
+
+    
     /*
     X += x;
     Y += y;*/
+    if(xOffset==0){
+      xOffset = x;
+    }
+    x -= xOffset;
+    if(yOffset==0){
+      yOffset = y;
+    }
+    y -= yOffset;
     if(zOffset==0){
       zOffset = z;
     }
     z -= zOffset;
     
+    if((x > 10) || (x < -10)){
+      X += x;//smoothReading(&Zsmooth, z);
+    }
+    if((y > 10) || (y < -10)){
+      Y += y;//smoothReading(&Zsmooth, z);
+    }
     if((z > 10) || (z < -10)){
       Z += z;//smoothReading(&Zsmooth, z);
     }
@@ -119,6 +196,8 @@ void loop(){
   
     double doubleZ = Z / 14.375;
     doubleZ = doubleZ / 10;
+
+
   
     Serial.println();
     Serial.print("!!!!!!!!!!");
@@ -153,6 +232,7 @@ void loop(){
         motorPulse = 5;
       }
       */
+      /*
       if( doubleZ < (destAngle) ) {
         Spin_Left();
         newTimer(&motorStopTimer, motorPulse);
@@ -162,9 +242,10 @@ void loop(){
         Spin_Right();
         newTimer(&motorStopTimer, motorPulse);
       }
+      */
       
     }
-    
+    /*
     if(i==50){
       Motor_Stop();
       Z=0;
@@ -178,6 +259,7 @@ void loop(){
     }
 
     i++;
+    */
   }
   /*
   double x, y, z;
