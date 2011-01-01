@@ -34,7 +34,7 @@ void setup(){
   }
   
   pinMode(10, OUTPUT);
-  Timer3.initialize(70);
+  Timer3.initialize(50);
   Timer3.attachInterrupt(callback);    
 }
 
@@ -68,12 +68,22 @@ int rawDigitalRead(int pinnum){
 }
 
 void callback(){
-  unsigned long now = micros();
+  
 
   for(int i=0;i<MAXRCPWMS;i++){
     //int state = digitalRead(rcPwm[i].pin);
     int state = rawDigitalRead(rcPwm[i].pin);
-        
+    
+    if( rcPwm[i].lastState != state ){
+      unsigned long now = micros();
+      if( state==HIGH ){ //rising
+        rcPwm[i].lastMicros = now;
+      }else{ //falling
+        rcPwm[i].pulseWidth = now - rcPwm[i].lastMicros;
+      }
+      rcPwm[i].lastState = state;
+    }
+    /*
     if( (rcPwm[i].lastState==LOW) && (state==HIGH) ){
       //rising edge
       rcPwm[i].lastMicros = now;
@@ -82,8 +92,8 @@ void callback(){
       //falling edge
       rcPwm[i].pulseWidth = now - rcPwm[i].lastMicros;
     }
+    */
     
-    rcPwm[i].lastState = state;
   }
 }
 
