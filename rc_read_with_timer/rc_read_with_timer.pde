@@ -1,24 +1,34 @@
 #include <TimerThree.h>
 
-const int LEDPIN = 13;
-const int SERVOPIN = 3;
-const int SERVOPIN1 = 4;
-const int SERVOPIN2 = 5;
-const int SERVOPIN3 = 6;
-const int SERVOPIN4 = 7;
+const byte LEDPIN = 13;
+const byte SERVOPIN = 3;
+const byte SERVOPIN1 = 4;
+const byte SERVOPIN2 = 5;
+const byte SERVOPIN3 = 6;
+const byte SERVOPIN4 = 7;
 
-const int MAXRCPWMS = 5;
-const int RCPINS[MAXRCPWMS] = {
+const byte MAXRCPWMS = 5;
+const byte RCPINS[MAXRCPWMS] = {
   SERVOPIN, 
   SERVOPIN1, 
   SERVOPIN2, 
   SERVOPIN3, 
-  SERVOPIN4,
+  SERVOPIN4, /**/
 };
 
+  /* < 50 millis for loop()
+  1 = 10
+  2 = 14
+  3 = 26
+  4 = 32
+  5 = 40
+  */
+const byte RCSAMPLERATE = 40; //in microseconds
+
 struct tRcPwm {
-  unsigned long pulseWidth, lastMicros, lastState;
-  int pin;
+  unsigned long lastMicros;
+  byte pin, lastState;
+  int pulseWidth;
 };
 
 volatile tRcPwm rcPwm[MAXRCPWMS];
@@ -34,7 +44,7 @@ void setup(){
   }
   
   pinMode(10, OUTPUT);
-  Timer3.initialize(50);
+  Timer3.initialize( RCSAMPLERATE );
   Timer3.attachInterrupt(callback);    
 }
 
@@ -52,7 +62,7 @@ void loop(){
   //delay(200);
 }
 
-int rawDigitalRead(int pinnum){
+byte rawDigitalRead(byte pinnum){
   switch(pinnum){
     case 3:
       return !((PINE & (1<<5))==0); // 3
@@ -68,11 +78,9 @@ int rawDigitalRead(int pinnum){
 }
 
 void callback(){
-  
-
-  for(int i=0;i<MAXRCPWMS;i++){
-    //int state = digitalRead(rcPwm[i].pin);
-    int state = rawDigitalRead(rcPwm[i].pin);
+  for(byte i=0;i<MAXRCPWMS;i++){
+    //byte state = digitalRead(rcPwm[i].pin);
+    byte state = rawDigitalRead(rcPwm[i].pin);
     
     if( rcPwm[i].lastState != state ){
       unsigned long now = micros();
@@ -83,17 +91,6 @@ void callback(){
       }
       rcPwm[i].lastState = state;
     }
-    /*
-    if( (rcPwm[i].lastState==LOW) && (state==HIGH) ){
-      //rising edge
-      rcPwm[i].lastMicros = now;
-    }else
-    if( (rcPwm[i].lastState==HIGH) && (state==LOW) ){
-      //falling edge
-      rcPwm[i].pulseWidth = now - rcPwm[i].lastMicros;
-    }
-    */
-    
   }
 }
 
