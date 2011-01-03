@@ -4,10 +4,10 @@
 /******************************************************************** Timer */
 struct Timer {
   long lastTime;
-  int delayTime;
+  unsigned int delayTime;
 };
 
-void newTimer(struct Timer *timer, int delayTime){
+void newTimer(struct Timer *timer, unsigned int delayTime){
   timer->lastTime = millis();
   timer->delayTime = delayTime;
 }
