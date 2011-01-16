@@ -1,13 +1,13 @@
 #!/usr/bin/perl
 
 use Device::SerialPort;
-use DateTime;
-use Data::Dumper;
+#use Data::Dumper;
+use DBI;
 
-$LOGDIR    = "/var/www/htdocs";
-#$LOGDIR    = "/tmp";
-$LOGFILE   = "weathoscope.out";
-$CSVFILE   = "weathoscope.csv";
+require "/root/bin/credentials.pl";
+
+$dbh = DBI->connect("dbi:Pg:dbname=$dbname", $dbuser, $dbpass, {AutoCommit => 1});
+
 $PORT      = "/dev/ttyU0";
 #$PORT      = "/dev/ttyUSB1";
 
@@ -17,21 +17,10 @@ $port->baudrate(9600);
 $port->parity("none");
 $port->stopbits(1);
 
-open(LOG,">${LOGDIR}/${LOGFILE}") || die "can't open log file\n";
-open(CSV,">>${LOGDIR}/${CSVFILE}") || die "can't open csv file\n";
-
 while (1) {
   my $data = $port->lookfor();
   if ($data) {
     #print "$data\n";
-
-    #write latest to LOG
-    truncate(LOG, 0);
-    seek(LOG, 0, 0);
-    syswrite LOG, $data;
-
-    #now decode for the CSV
-    my $dt = DateTime->now();
 
     #looking for these
     my $degreesC = "";
@@ -51,9 +40,12 @@ while (1) {
       #}
       
     }
-    #write csv
-    my $csv = "$dt, $degreesC\n";
-    syswrite CSV, $csv;
+    
+    if($degreesC){
+      my $insert = "INSERT INTO LOG (ts,temp) VALUES (NOW(),$degreesC);";
+      $dbh->do($insert);
+    }
+    
   } else {
     sleep(1);
   }

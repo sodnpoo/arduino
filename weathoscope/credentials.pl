@@ -1,0 +1,4 @@
+$dbname = "";
+$dbuser = "";
+$dbpass = "";
+

@@ -1,0 +1,5 @@
+<?php
+  $dbname = "";
+  $dbuser = "";
+  $dbpass = "";
+?>
