@@ -6,7 +6,7 @@
   include('credentials.php');
 
   $NUMDATES = 8;
-  $NUMPLOTS = 120;
+  $NUMPLOTS = 240;
   
   $url = 'http://chart.googleapis.com/chart?chid=' . md5(uniqid(rand(), true));
   $chd = 't:';
@@ -21,33 +21,40 @@
   }else{
 
     switch($x){
+      case 'm':
+        $interval = '1 month';
+        $numdates = 8;
+      break;
       case 'w':
         $interval = '1 week';
+        $numdates = 7;
       break;
       case 'd':
       default:
         $interval = '1 day';
+        $numdates = 8;
     }
     $title .= " ($interval)";
 
     $result = pg_query($dbh, "
       SELECT 
-        to_char(ts, 'DD Mon HH24:MI')as ts, 
-        temp 
+        to_char(date_trunc('hour', ts), 'DD Mon HH24:MI')as ts, 
+        round(avg(temp), 1)as temp 
       FROM 
         log 
       WHERE 
         ts > (CURRENT_TIMESTAMP(0) - INTERVAL '$interval') 
+      GROUP BY 
+        date_trunc('hour', ts) 
       ORDER BY 
-        ts 
-      ASC;
-    ");    
-    
+        ts;    
+    ");
+
     if (!$result) {
       $title = "error";
     }else{
       $numrows = pg_num_rows($result);
-      $datestep = $numrows / $NUMDATES;
+      $datestep = $numrows / $numdates;
       $plotstep = ceil($numrows / $NUMPLOTS);
       
       $i = 0;
@@ -68,21 +75,46 @@
         $lastrow = $row;
         $i++;
       }
-      $chd .= $lastrow['temp'];
+      //$chd .= $lastrow['temp'];
     }
+    
+    $chd = substr($chd, 0, -1);
+    /*
+      $result = pg_query($dbh, "        
+        SELECT 
+          date_trunc('day', ts)as ts,
+          round(avg(temp),1) as temp 
+        FROM 
+          log 
+        GROUP BY 
+          date_trunc('day', ts) 
+        ORDER BY
+          ts DESC
+        LIMIT 1;
+      ");
+      
+      if (!$result) {
+        echo "error";
+      }else{
+        $chd .= '|';
+        while($row = pg_fetch_array($result)){
+          //echo $row['temp'];
+          $chd .= $row['temp'] . ',';
+        }
+        $chd = substr($chd, 0, -1);        
+      }
+    */
   }  
-
-  if(count($datelabels) < ($NUMDATES+1)){
-    $datelabels[] = $lastrow['ts'];
-  }else{
-    $datelabels[count($datelabels)-1] = $lastrow['ts'];
-  }
 
   $chxl = '1:|';
   $chxl .= implode('|', $datelabels);
 
   $min -= 1;
   $max += 1;
+  
+  $min = round($min);
+  $max = round($max);
+  
   $range = $max - $min;
   $tempgrid = 100 / $range;
   $dategrid = 100 / (count($datelabels)-1);
@@ -99,7 +131,9 @@
     'chxl'=> $chxl,
     'chxtc'=>'1,10',
     'chg' => "$dategrid,$tempgrid",
-    'chco'=> '7D26CD',
+    'chco'=> '7D26CD|00ffFF',
+//    'chls'=> '1|1',
+//    'chdl'=> 'Temp|Avg',
 //    'chof'=>'validate',
   );
   //TODO check length of url

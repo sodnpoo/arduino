@@ -5,7 +5,7 @@
 <xml>
 <post>
   <title>weathoscope</title>
-  <date></date>
+  <date><?php echo date("d M Y"); ?></date>
   <p>
   <span class="header">Current temperature:
   <?php 
@@ -13,7 +13,20 @@
     if (!$dbh) {
       echo "error";
     }else{
-      $result = pg_query($dbh, "SELECT temp FROM log ORDER BY ts DESC LIMIT 1");
+//      $result = pg_query($dbh, "SELECT temp FROM log ORDER BY ts DESC LIMIT 1");
+      $result = pg_query($dbh, "
+        SELECT 
+          date_trunc('hour', ts)as ts,
+          round(avg(temp),1) as temp 
+        FROM 
+          log 
+        GROUP BY 
+          date_trunc('hour', ts) 
+        ORDER BY
+          ts DESC
+        LIMIT 1;
+      ");
+      
       if (!$result) {
         echo "error";
       }else{
@@ -30,6 +43,9 @@
   <p>
   </p>
   <image src="/weathoscope/temp_chart_db.php?x=w"/>
+  <p>
+  </p>
+  <image src="/weathoscope/temp_chart_db.php?x=m"/>
   <p>
   </p>
 </post>
