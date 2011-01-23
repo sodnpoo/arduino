@@ -8,14 +8,15 @@
 #include <sd_raw_config.h>
 #include <sd_reader_config.h>
 
-#include <sdlog.h>
+#include <sdbinlog.h>
 
 #define DEBUG
 
 #include "Smoothing.h"
 #include "Timer.h"
-#include "hCommands.h"
-#include "hHardware.h"
+#include <hCommands.h>
+#include <hHardware.h>
+#include <hLog.h>
 
 #define MAXCMDS 3
 /*
@@ -32,18 +33,41 @@ Command commands[MAXCMDS] = {
 //  {HACTION_REV,   2000},
   {HACTION_LAND,  0}, //descend until 10cm
 };
+/*
+struct logdata_t {
+  int bottomRange;
+  int desiredBottomRange;
+  boolean bottomRangeLocked;
+  Command hAction;
+  int iAction; 
+};
+struct logdatacontainer_t { //all variables we want to log need to be in this struct
+  byte loglen;     //we need a byte at the start and end
 
+  logdata_t logdata;
+  
+  byte lognull;     //we need a byte at the start and end
+};
+*/
 
-boolean txActive = false;
+logdatacontainer_t logdata;
+//setup pointers into the logdata struct
+int *bottomRange = &(logdata.logdata.bottomRange);
+int *desiredBottomRange = &(logdata.logdata.desiredBottomRange);
+boolean *bottomRangeLocked = &(logdata.logdata.bottomRangeLocked);
+Command *hAction = &(logdata.logdata.hAction);
+int *iAction = &(logdata.logdata.desiredBottomRange);
+
+//boolean txActive = false;
 
 Timer hActionTimer;
 Timer logSyncTimer;
 #define LOGSYNCRATE 1000
 
 Timer bottomRangeTimer;
-int bottomRange = 0;
-int desiredBottomRange = 0;
-boolean bottomRangeLocked = false;
+//int bottomRange = 0;
+//int desiredBottomRange = 0;
+//boolean bottomRangeLocked = false;
 //Timer bottomRangeLockTimer;
 
 Timer incMotorRateLimit;
@@ -53,6 +77,13 @@ Timer decMotorRateLimit;
 
 /******************************************************************** setup() */
 void setup(){
+  *bottomRange = 0;
+  *desiredBottomRange = 0;
+  *bottomRangeLocked = false;
+  //*hAction = {HACTION_OFF, 0};
+  *iAction = 0;
+
+
   Serial.begin(9600);
 
   int sdinit = sd_raw_init();
@@ -60,18 +91,18 @@ void setup(){
      Serial.print("MMC/SD initialization failed: ");
      Serial.println(sdinit);
   }
-  logger("starting logging...");
   
   for(int i=0;i<MAXCMDS;i++){
-    char buf[256]; logger( dumpCommand(&commands[i], buf) );
+    char buf[255];
+    Serial.println( dumpCommand(&commands[i], buf) );
   }
 
   hHWsetup();
   
-
+/*
   newSmoothed(&txActiveSmooth);
   newTimer(&txActiveTimer, 150);
-
+*/
   disableTimer(&hActionTimer);
   
   newTimer(&bottomRangeTimer, 200);
@@ -82,36 +113,32 @@ void setup(){
 
   newTimer(&logSyncTimer, LOGSYNCRATE);
 
-  logger("setup complete");
   sd_raw_sync();
 }
 
 
-
-Command hAction = {HACTION_OFF, 0};
-int iAction = 0;
+int sdtail = 0;
+//Command hAction = {HACTION_OFF, 0};
+//int iAction = 0;
 /******************************************************************** loop() */
 void loop(){
   //get bottom range
   if( checkTimer(&bottomRangeTimer) ){
     //Serial.print("bottomRange: ");
     //Serial.println(bottomRange);
-    loggerInt("btmRange", bottomRange);
-    bottomRange = readRange(srfAddress);
+    *bottomRange = readRange(srfAddress);
     requestRange(srfAddress);
   }
   
   
   if(bottomRangeLocked){
-    if(bottomRange  < desiredBottomRange){
+    if(*bottomRange  < *desiredBottomRange){
       if( checkTimer(&incMotorRateLimit) ){
-        logger("IncMotors()");
         IncMotors();
       }
     } else
-    if(bottomRange > desiredBottomRange){
+    if(*bottomRange > *desiredBottomRange){
       if( checkTimer(&decMotorRateLimit) ){
-        logger("DecMotors()");
         DecMotors();
       }
     }    
@@ -137,13 +164,12 @@ void loop(){
   }
 */
 
-  switch(hAction.cmd){
+  switch(hAction->cmd){
     case HACTION_OFF:{ //on the ground - rotors idle
       
       //Serial.println("HACTION_OFF");
 
       if(isTimerDisabled(&hActionTimer)){
-        logger("wait");  
         iAction = 0;
         newTimer(&hActionTimer, 10000);
         
@@ -154,7 +180,6 @@ void loop(){
         disableTimer(&bottomRangeTimer); //switch off ranger
       }
       if( checkTimer(&hActionTimer) ){
-        logger("go");
 
         disableTimer(&hActionTimer);
         enableTimer(&bottomRangeTimer); //switch ranger on
@@ -162,7 +187,7 @@ void loop(){
         newTimer(&decMotorRateLimit, DECRATE); //reset to defaults
         newTimer(&incMotorRateLimit, INCRATE);
         
-        hAction.cmd = HACTION_NEXT;
+        hAction->cmd = HACTION_NEXT;
       }
       
       //hAction.cmd = HACTION_NEXT;
@@ -214,11 +239,11 @@ void loop(){
     case HACTION_HOVER:{ //hovering for x ms
       //Serial.println("HACTION_HOVER");
       if(isTimerDisabled(&hActionTimer)){
-        newTimer(&hActionTimer, hAction.value);        
+        newTimer(&hActionTimer, hAction->value);        
       }
       if( checkTimer(&hActionTimer) ){        
         disableTimer(&hActionTimer);
-        hAction.cmd = HACTION_NEXT;
+        hAction->cmd = HACTION_NEXT;
       }
     }
     break;
@@ -226,7 +251,7 @@ void loop(){
     case HACTION_FWD:{ // forward for x ms
       //Serial.println("HACTION_FWD");
       if(isTimerDisabled(&hActionTimer)){
-        newTimer(&hActionTimer, hAction.value);
+        newTimer(&hActionTimer, hAction->value);
         
         rotorFwd();
       }
@@ -234,7 +259,7 @@ void loop(){
         rotorStop();
         
         disableTimer(&hActionTimer);
-        hAction.cmd = HACTION_NEXT;
+        hAction->cmd = HACTION_NEXT;
       }
     }
     break;
@@ -242,7 +267,7 @@ void loop(){
     case HACTION_REV:{ // reverse for x ms
       //Serial.println("HACTION_REV");
       if(isTimerDisabled(&hActionTimer)){
-        newTimer(&hActionTimer, hAction.value);
+        newTimer(&hActionTimer, hAction->value);
         
         rotorRev();
       }
@@ -250,16 +275,16 @@ void loop(){
         rotorStop();
         
         disableTimer(&hActionTimer);
-        hAction.cmd = HACTION_NEXT;
+        hAction->cmd = HACTION_NEXT;
       }
     }
     break;
     
     case HACTION_BTMRANGE:{ //set desired bottom range
-      bottomRangeLocked = true;
-      desiredBottomRange = hAction.value;
-      if(bottomRange == desiredBottomRange){
-        hAction.cmd = HACTION_NEXT;
+      *bottomRangeLocked = true;
+      *desiredBottomRange = hAction->value;
+      if(*bottomRange == *desiredBottomRange){
+        hAction->cmd = HACTION_NEXT;
       }
     }
     break;
@@ -270,10 +295,10 @@ void loop(){
       const int TAKEOFF_POINT = 50;
       const int GNDFX_POINT = 30;
       
-      bottomRangeLocked = true;
-      desiredBottomRange = TAKEOFF_POINT;
+      *bottomRangeLocked = true;
+      *desiredBottomRange = TAKEOFF_POINT;
       
-      if(bottomRange < GNDFX_POINT){
+      if(*bottomRange < GNDFX_POINT){
         //Serial.println("GND_POINT!");
         incMotorRateLimit.delayTime = 100;
       }else{
@@ -281,8 +306,8 @@ void loop(){
       }
       
       
-      if(bottomRange >= desiredBottomRange){
-        hAction.cmd = HACTION_NEXT;
+      if(*bottomRange >= *desiredBottomRange){
+        hAction->cmd = HACTION_NEXT;
       }
     }
     break;
@@ -293,62 +318,43 @@ void loop(){
       const int OFF_POINT = 10;
       const int GNDFX_POINT = 30;
       
-      bottomRangeLocked = true;
-      desiredBottomRange = OFF_POINT;
+      *bottomRangeLocked = true;
+      *desiredBottomRange = OFF_POINT;
       
-      if(bottomRange < GNDFX_POINT){
+      if(*bottomRange < GNDFX_POINT){
         decMotorRateLimit.delayTime = 100;
       }else{
         decMotorRateLimit.delayTime = DECRATE;
       }
       
-      if(bottomRange <= desiredBottomRange){        
-        hAction.cmd = HACTION_NEXT;
+      if(*bottomRange <= *desiredBottomRange){        
+        hAction->cmd = HACTION_NEXT;
       }
     }
     break;
     
     case HACTION_NEXT:{ //next command
-      logger("HACTION_NEXT");
       
-      hAction = commands[iAction];
+      *hAction = commands[*iAction];
+      /*
       char buf[SDMAXLENGTH]; logger( dumpCommand(&hAction, buf) );
-      
+      */
       flipLed();
       
       iAction++;      
-      if(iAction > MAXCMDS){
-        hAction.cmd = HACTION_OFF;
+      if(*iAction > MAXCMDS){
+        hAction->cmd = HACTION_OFF;
       }
     }
     break;
     
   }
-/*  
+
   if( checkTimer(&logSyncTimer) ){
-    logger("logSync");
+    sdtail = writeLog(&logdata, sdtail, sizeof(logdata));
     sd_raw_sync();
   }
-*/ 
 } //loop()
-void loggerInt(char *name, int value){
-  char buf[SDMAXLENGTH];
-  buf[0] = 0;
-  strcat(buf, name);
-  strcat(buf, "/");
-  char buf2[16];
-  itoa(value, buf2, 10);
-  strcat(buf, buf2);  
-  logger(buf);
-}
 
-void logger(char *s){
-  char buf[SDMAXLENGTH];
-  buf[0] = 0;
-  ltoa(millis(), buf, 10);
-  strcat(buf, ":");
-  strcat(buf, s);
-  Serial.println(buf);
-  SDwrite(buf,true);
-}
+
 
