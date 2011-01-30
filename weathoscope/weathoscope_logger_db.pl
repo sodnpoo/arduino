@@ -19,8 +19,8 @@ $port->stopbits(1);
 
 while (1) {
   my $data = $port->lookfor();
-  if ($data) {
-    #print "$data\n";
+  if($data){
+    print "$data\n";
 
     #looking for these
     my $degreesC = "";
@@ -40,8 +40,8 @@ while (1) {
       #}
       
     }
-    
-    if($degreesC){
+   
+    if(length($degreesC)){ 
       my $insert = "INSERT INTO LOG (ts,temp) VALUES (NOW(),$degreesC);";
       $dbh->do($insert);
     }
