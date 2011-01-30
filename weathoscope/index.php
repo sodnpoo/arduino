@@ -1,5 +1,5 @@
 <?php header('Content-Type: text/xml'); ?>
-<?php include('credentials.php'); ?>
+<?php include('lib.php'); ?>
 <?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="http://sodnpoo.com/sodnpoo.xsl"?>
 <xml>
@@ -7,45 +7,15 @@
   <title>weathoscope</title>
   <date><?php echo date("d M Y"); ?></date>
   <p>
-  <span class="header">Current temperature:
-  <?php 
-    $dbh = pg_connect("host=localhost dbname=$dbname user=$dbuser password=$dbpass");
-    if (!$dbh) {
-      echo "error";
-    }else{
-//      $result = pg_query($dbh, "SELECT temp FROM log ORDER BY ts DESC LIMIT 1");
-      $result = pg_query($dbh, "
-        SELECT 
-          date_trunc('hour', ts)as ts,
-          round(avg(temp),1) as temp 
-        FROM 
-          log 
-        GROUP BY 
-          date_trunc('hour', ts) 
-        ORDER BY
-          ts DESC
-        LIMIT 1;
-      ");
-      
-      if (!$result) {
-        echo "error";
-      }else{
-        if($row = pg_fetch_array($result)){
-          echo $row['temp'];
-        } 
-      }
-    }  
-  ?>
-  &#176;C
-  </span>
+  <span class="header">Current temperature: <?php echo getAvgTempAPC('1 hour'); ?> &#176;C</span>
   </p>
-  <image src="/weathoscope/temp_chart_db.php"/>
+  <image src="<?php echo buildTempGraphAPC('1 day', 8, 'Temperature'); ?>"/>
   <p>
   </p>
-  <image src="/weathoscope/temp_chart_db.php?x=w"/>
+  <image src="<?php echo buildTempGraphAPC('1 week', 7, 'Temperature'); ?>"/>
   <p>
   </p>
-  <image src="/weathoscope/temp_chart_db.php?x=m"/>
+  <image src="<?php echo buildTempGraphAPC('1 month', 8, 'Temperature'); ?>"/>
   <p>
   </p>
 </post>
