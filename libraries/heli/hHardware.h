@@ -85,9 +85,24 @@ int M1Speed = MOTORMIN;
 int M2Speed = MOTORMIN;
 // 208 is take off speed with full battery
 // 180 just off floor(holding own weight) with trainer / free rotation on skids
+
+void SpinLeft(){
+  
+  if((M1Speed+40) < MOTORMAX){
+    M1Speed += 40;
+  }
+/*
+  if(M2Speed > MOTORMIN){
+    M2Speed -= 40;
+  }
+*/  
+  analogWrite(M1, M1Speed);
+  analogWrite(M2, M2Speed);
+}
+
 void IncMotors(){
   //Serial.println("IncMotors");
-  if( (M1Speed < MOTORMAX) && (M1Speed < MOTORMAX) ){
+  if( (M1Speed < MOTORMAX) && (M2Speed < MOTORMAX) ){
     M1Speed++;
     M2Speed++;
     flipLed();
@@ -98,7 +113,7 @@ void IncMotors(){
 
 void DecMotors(){
   //Serial.println("DecMotors");
-  if( (M1Speed > MOTORMIN) && (M1Speed > MOTORMIN) ){
+  if( (M1Speed > MOTORMIN) && (M2Speed > MOTORMIN) ){
     M1Speed--;
     M2Speed--;
     flipLed();

@@ -6,6 +6,7 @@ structs for heli logging - put here so they can be used by a reader program
 */
 
 struct logdata_t {
+  long ts;
   int bottomRange;
   int desiredBottomRange;
   boolean bottomRangeLocked;

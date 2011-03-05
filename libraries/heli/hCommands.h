@@ -16,6 +16,8 @@
 #define HACTION_BTMRANGE    7 //set min range bottom
 #define HACTION_LAND    8
 #define HACTION_TAKEOFF    9
+#define HACTION_SPINLEFT    10
+
 
 struct Command {
   int cmd;
@@ -55,6 +57,9 @@ char* dumpCommand(struct Command *command, char *out){
     break;
     case HACTION_TAKEOFF:
       strcat(out, "HACTION_TAKEOFF");
+    break;
+    case HACTION_SPINLEFT:
+      strcat(out, "HACTION_SPINLEFT");
     break;
     default:
       itoa(command->cmd, out, 10);
