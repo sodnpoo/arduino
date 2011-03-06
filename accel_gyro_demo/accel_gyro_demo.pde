@@ -60,21 +60,19 @@ void loop(){
   
   
   if( checkTimer(&accelTimer) ){
-    accelX = readAccel(0x03, 0x02);
-    accelY = readAccel(0x05, 0x04);
-    accelZ = readAccel(0x07, 0x06);
+    getAccel(&accelX, &accelY, &accelZ);
   }
 
   if( checkTimer(&dumpTimer) ){
     
     Serial.print("accelX: ");
-    Serial.print(accelX*0.25);
+    Serial.print(accelX);
     Serial.print(" ");
     Serial.print("accelY: ");
-    Serial.print(accelY*0.25);
+    Serial.print(accelY);
     Serial.print(" ");
     Serial.print("accelZ: ");
-    Serial.print(accelZ*0.25);
+    Serial.print(accelZ);
     Serial.print(" ");
 
     Serial.println();

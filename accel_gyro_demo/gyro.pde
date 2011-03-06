@@ -37,8 +37,7 @@ void initGyro()
 
 
 //void getGyroscopeData(double *x, double *y, double *z)
-bool getGyroscopeData(int *x, int *y, int *z)
-{
+bool getGyroscopeData(int *x, int *y, int *z){
   /**************************************
   Gyro ITG-3200 I2C
   registers:
