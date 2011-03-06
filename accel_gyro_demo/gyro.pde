@@ -92,50 +92,8 @@ double gyroDataToDegrees(int gyro, long *heading, int *offset){
   return gyroHeadingToDeg(heading);
 }
 
-/*
-void setup()
-{
-  Serial.begin(9600);
-  Wire.begin();
-  initGyro();
-}
-*/
-/*
-int i = 0;
-double X, Y, Z = 0;
-*/
-/*
-void loop()
-{
-  double x, y, z;
-  
-  getGyroscopeData(&x, &y, &z);
-  X += x;
-  Y += y;
-  Z += z;
-  Serial.println();
-  delay(100);
-  if(i==10){
 
-    Serial.print("!!!!!!!!!! X: ");
-    Serial.print(X/100);
-    Serial.print(" Y: ");
-    Serial.print(Y/100);
-    Serial.print(" Z: ");
-    Serial.print(Z/100);
-    Serial.println();
-    X = 0;
-    Y = 0;
-    Z = 0;
-    
-    i=0;
-    delay(5000);
-    Serial.println("==============go================");
-  }
-  i++;
-}
-*/
-
+//TODO move these out to a separate lib
 //---------------- Functions
 //Writes val to address register on device
 void writeTo(int device, byte address, byte val) {
