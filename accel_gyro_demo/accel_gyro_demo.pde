@@ -31,48 +31,62 @@ void setup(){
   initBMA180();
   delay(2000);
   newTimer(&accelTimer, 1000);
+
+  newTimer(&gyroTimer, 50);
   
   newTimer(&dumpTimer, 500);
 }
 
-long X = 0, Y = 0, Z = 0;
+//raw gyro data
+long rawGyroX = 0, rawGyroY = 0, rawGyroZ = 0;
+//auto calculated offsets
 int xOffset, yOffset, zOffset = 0;
 
-int accelX, accelY, accelZ = 0;
+long gyroX = 0, gyroY = 0, gyroZ = 0;
+
+
+int rawAccelX, rawAccelY, rawAccelZ = 0;
 
 void loop(){
-  int x = 0, y = 0, z = 0;
-  getGyroscopeData(&x, &y, &z);
-/*
-  if(x!=0){
-    Serial.print("X: ");
-    Serial.println( gyroDataToDegrees(x, &X, &xOffset) );
-  }
-  if(y!=0){
-    Serial.print("Y: ");
-    Serial.println( gyroDataToDegrees(y, &Y, &yOffset) );
-  }
-  if(z!=0){
-    Serial.print("Z: ");
-    Serial.println( gyroDataToDegrees(z, &Z, &zOffset) );
-  }
-*/
+
+  if( checkTimer(&gyroTimer) ){
+    int x = 0, y = 0, z = 0;
+    getGyroscopeData(&x, &y, &z);
   
+    gyroX = accumulateRotations(x, &rawGyroX, &xOffset);
+    gyroY = accumulateRotations(y, &rawGyroY, &yOffset);
+    gyroZ = accumulateRotations(z, &rawGyroZ, &zOffset);
+  }  
   
   if( checkTimer(&accelTimer) ){
-    getAccel(&accelX, &accelY, &accelZ);
+    rawAccelX = readAccel(0x03, 0x02);
+    rawAccelY = readAccel(0x05, 0x04);
+    rawAccelZ = readAccel(0x07, 0x06);
   }
 
   if( checkTimer(&dumpTimer) ){
     
+    Serial.print("gyroX: ");
+    Serial.print(gyroRotationsToDeg(&gyroX));
+    Serial.print(" ");
+    Serial.print("gyroY: ");
+    Serial.print(gyroRotationsToDeg(&gyroY));
+    Serial.print(" ");
+    Serial.print("gyroZ: ");
+    Serial.print(gyroRotationsToDeg(&gyroZ));
+    Serial.print(" ");
+
+    Serial.println();
+  
+    
     Serial.print("accelX: ");
-    Serial.print(accelX);
+    Serial.print(rawAccelX*0.25);
     Serial.print(" ");
     Serial.print("accelY: ");
-    Serial.print(accelY);
+    Serial.print(rawAccelY*0.25);
     Serial.print(" ");
     Serial.print("accelZ: ");
-    Serial.print(accelZ);
+    Serial.print(rawAccelZ*0.25);
     Serial.print(" ");
 
     Serial.println();

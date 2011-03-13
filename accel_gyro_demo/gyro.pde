@@ -37,7 +37,8 @@ void initGyro()
 
 
 //void getGyroscopeData(double *x, double *y, double *z)
-bool getGyroscopeData(int *x, int *y, int *z){
+bool getGyroscopeData(int *x, int *y, int *z)
+{
   /**************************************
   Gyro ITG-3200 I2C
   registers:
@@ -66,18 +67,19 @@ bool getGyroscopeData(int *x, int *y, int *z){
   return true;
 }
 
-double gyroHeadingToDeg(long *heading){
-  double deg = *heading / 143.75; //ITG3200's hardware scale factor
+//convert rotations to degrees
+double gyroRotationsToDeg(long *rotations){
+  double deg = *rotations / 143.75; //ITG3200's hardware scale factor
   if(deg > 360){ //deal with wrap around..
     deg -= 360;
-  }
+  }else
   if(deg < 0){
     deg += 360;
   }
   return deg;
 }
-
-double gyroDataToDegrees(int gyro, long *heading, int *offset){
+// accumulates (or deccumulate) total rotations since power on
+long accumulateRotations(int gyro, long *rotations, int *offset){
   if(gyro!=0){
     if(*offset==0){ //auto offset
       *offset = gyro;
@@ -85,14 +87,12 @@ double gyroDataToDegrees(int gyro, long *heading, int *offset){
     gyro -= *offset;
 
     if((gyro > 10) || (gyro < -10)){ //remove tiny movements
-      *heading += gyro;
+      *rotations += gyro;
     }
   }
-  return gyroHeadingToDeg(heading);
+  return *rotations;
 }
 
-
-//TODO move these out to a separate lib
 //---------------- Functions
 //Writes val to address register on device
 void writeTo(int device, byte address, byte val) {
