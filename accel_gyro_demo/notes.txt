@@ -1,0 +1,3 @@
+Fsample = 1kHz / (7 + 1) = 125Hz, or 8ms per sample
+
+1000Hz / (99 + 1) = 10Hz = (1000/10Hz = 100ms per sample)

@@ -7,6 +7,11 @@
 #include <Timer.h>
 #include <Smoothing.h>
 
+#include <WireHelper.h>
+
+#include <BMA180.h>
+#include <ITG3200.h>
+
 //status LED
 const int LEDPIN = 13;
 
@@ -59,9 +64,9 @@ void loop(){
   }  
   
   if( checkTimer(&accelTimer) ){
-    rawAccelX = readAccel(0x03, 0x02);
-    rawAccelY = readAccel(0x05, 0x04);
-    rawAccelZ = readAccel(0x07, 0x06);
+    rawAccelX = readXAccel();
+    rawAccelY = readYAccel();
+    rawAccelZ = readZAccel();
   }
 
   if( checkTimer(&dumpTimer) ){
