@@ -165,6 +165,7 @@ void loop(){
     double gyroZdeg = gyroRotationsToDeg(&gyroZ);
     if(!(( gyroZdeg > (180-10) ) && ( gyroZdeg < (180+10) ))){
       Serial.println("SpinLeft!!!!");
+      SpinLeft();
     }
   }
 } //loop()

@@ -79,7 +79,7 @@ void rotorStop(){
 }
 
 /******************************************************************** Motors */
-#define MOTORMAX 235
+#define MOTORMAX 255
 #define MOTORMIN 170
 int M1Speed = MOTORMIN;
 int M2Speed = MOTORMIN;
@@ -90,6 +90,8 @@ void SpinLeft(){
   
   if((M1Speed+40) < MOTORMAX){
     M1Speed += 40;
+  }else{
+    M1Speed = MOTORMAX;
   }
 /*
   if(M2Speed > MOTORMIN){
