@@ -98,33 +98,17 @@ void loop(){
               DecMotors();
             }
           break;
+          case 'q':
+            rotorFwd();
+          break;
+          case 's':
+            rotorRev();
+          break;
           
         }
       }
     }
-    /*
-    switch(c){
-      case ' ':
-        Shutdown();
-      break;
-      case 'p':
-        ToggleDump();
-      break;
-      case 'h':
-        PrintHelp();
-      break;
-      case 'g':
-        Go();
-      break;
-      case 'b':
-        IncMotors();
-      break;
-      case 'm':
-        DecMotors();
-      break;
-      
-    }
-    */
+
   }
   
   //check gyroZ every 5 seconds
@@ -177,11 +161,14 @@ void PrintHelp(){
   Serial.println(" g       : go");
   Serial.println(" b       : inc motors");
   Serial.println(" m       : dec motors");
+  Serial.println(" q       : tail fwd");
+  Serial.println(" s       : tail rev");
 }
 
 void Shutdown(){
   Serial.println("SHUTDOWN");
   StopMotors();
+  rotorStop();
   disableTimer(&actionTimer);
 }
 

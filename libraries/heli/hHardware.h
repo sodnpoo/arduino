@@ -9,6 +9,7 @@ const int M2 = 6;
 
 const int in1Pin = 7;//24;
 const int in2Pin = 8;//25;
+const int tailSpeedPin = 3;
 
 // SRF stuff
 #define srfAddress 0x70                           // Address of the SRF08
@@ -31,6 +32,7 @@ inline void hHWsetup(){
   //tail rotor
   pinMode(in1Pin, OUTPUT);
   pinMode(in2Pin, OUTPUT);
+  pinMode(tailSpeedPin, OUTPUT);
 
 }
 
@@ -41,7 +43,7 @@ void flipLed(){
     digitalWrite(ledPin, LOW);     
   }
 }
-
+/*
 Smoothed txActiveSmooth;
 Timer txActiveTimer;
 inline boolean isTxActive(struct Smoothed *smooth, int ledPin){
@@ -58,24 +60,27 @@ inline boolean isTxActive(struct Smoothed *smooth, int ledPin){
   }
   return true;
 }
-
+*/
 /***************************************** tail rotor */
 void rotorFwd(){
   Serial.println("rotorFwd()");
   digitalWrite(in1Pin, HIGH);
   digitalWrite(in2Pin, LOW);  
+  analogWrite(tailSpeedPin, 255);
 }
 
 void rotorRev(){
   Serial.println("rotorRev()");
   digitalWrite(in1Pin, LOW);
   digitalWrite(in2Pin, HIGH);  
+  analogWrite(tailSpeedPin, 255);
 }
 
 void rotorStop(){
   Serial.println("rotorStop()");
   digitalWrite(in2Pin, LOW);
   digitalWrite(in1Pin, LOW);  
+  analogWrite(tailSpeedPin, 0);
 }
 
 /******************************************************************** Motors */
