@@ -1,3 +1,4 @@
+
 #include "stdlib.h"
 #include "math.h"
 #include "wiring.h"
@@ -7,15 +8,12 @@
 
 #define DEBUG
 
-#include "Smoothing.h"
+#include <Smoothing.h>
 #include "Timer.h"
 #include <hHardware.h>
 #include <ITG3200.h>
 
-const int LEDPIN = 2;
-
-Timer gyroTimer, dumpTimer, actionTimer;
-
+Timer gyroTimer, dumpTimer, actionTimer, headingChgLimiter, ledTimer, pingTimer;
 
 /******************************************************************** setup() */
 void setup(){
@@ -26,21 +24,26 @@ void setup(){
   Serial.begin(9600);
   //Serial.println("setup");
 
-  pinMode(LEDPIN, OUTPUT);
-  digitalWrite(LEDPIN, LOW);
-
   Wire.begin();
   initGyro();
   
-  delay(1000);
+  //wait for hardware to settle
+  delay(3000);
 
   newTimer(&gyroTimer, 50);
   
   newTimer(&dumpTimer, 500);
   disableTimer(&dumpTimer);
   
-  newTimer(&actionTimer, 5000);
+  newTimer(&actionTimer, 50);
   disableTimer(&actionTimer);
+  
+  newTimer(&headingChgLimiter, 250);
+
+  newTimer(&ledTimer, 250);
+
+  newTimer(&pingTimer, 1000);
+  
 }
 
 //gyro
@@ -54,6 +57,7 @@ boolean readlnmode = false;
 
 /******************************************************************** loop() */
 void loop(){
+  
   if (Serial.available() > 0) {
     char c = Serial.read();
     
@@ -77,6 +81,7 @@ void loop(){
 
         switch(c){
           case ' ':
+            Serial.println("SHUTDOWN");
             Shutdown();
           break;
           case 'p':
@@ -105,10 +110,26 @@ void loop(){
             rotorRev();
           break;
           
+          /*
+          Every time we see a 'z' - reset the timer
+          (if the timer expires then shut down!)
+          */
+          case 'z':
+            enableTimer(&pingTimer);
+          break;
+          
         }
       }
     }
 
+  }
+
+  if( checkTimer(&pingTimer) ){
+    Shutdown();
+  }
+  
+  if( checkTimer(&ledTimer) ){
+    flipLed();
   }
   
   //check gyroZ every 5 seconds
@@ -147,10 +168,63 @@ void loop(){
   
   if( checkTimer(&actionTimer) ){
     double gyroZdeg = gyroRotationsToDeg(&gyroZ);
-    if(!(( gyroZdeg > (180-10) ) && ( gyroZdeg < (180+10) ))){
-      Serial.println("SpinLeft!!!!");
-      SpinLeft();
+    
+    double heading = 0; //0..359.99
+    
+    //normalise
+    gyroZdeg += 180 - heading;
+    if(gyroZdeg > 360){
+      gyroZdeg -= 360;
     }
+    heading += 180 - heading;
+    if(heading > 360){
+      heading -= 360;
+    }
+    
+    int resolution = 5; //cant be more than 180
+    double maxHeading = heading + resolution;
+    double minHeading = heading - resolution;
+/*
+    Serial.print("maxHeading:");
+    Serial.println(maxHeading);
+    Serial.print("minHeading:");
+    Serial.println(minHeading);
+    Serial.print("gyroZdeg:");
+    Serial.println(gyroZdeg);
+*/
+    if( ( gyroZdeg > minHeading ) && ( gyroZdeg < maxHeading ) ){
+      Serial.println("**on course**");
+    }else{ //we're not on course - spin left or right?
+      if( checkTimer(&headingChgLimiter) ){
+        if( gyroZdeg > maxHeading ){
+          if(M1Speed > MOTORMIN){
+            M1Speed--;
+            analogWrite(M1, M1Speed);
+          }
+          if(M2Speed < MOTORMAX){
+            M2Speed++;
+            analogWrite(M2, M2Speed);
+          }
+        }
+        if( gyroZdeg < minHeading ){
+          if(M1Speed < MOTORMAX){
+            M1Speed++;
+            analogWrite(M1, M1Speed);
+          }
+          if(M2Speed > MOTORMIN){
+            M2Speed--;
+            analogWrite(M2, M2Speed);
+          }        
+        }
+      }
+    }
+    
+    /*
+    if( ( gyroZdeg > (180-10) ) && ( gyroZdeg < (180+10) ) ){
+      Serial.println("**180***");
+      Shutdown();
+    }
+    */
   }
 } //loop()
 
@@ -166,7 +240,7 @@ void PrintHelp(){
 }
 
 void Shutdown(){
-  Serial.println("SHUTDOWN");
+  //Serial.println("SHUTDOWN");
   StopMotors();
   rotorStop();
   disableTimer(&actionTimer);
@@ -181,5 +255,6 @@ void ToggleDump(){
 }
 
 void Go(){
+  Serial.println("!!!!Go!!!!");
   enableTimer(&actionTimer);
 }

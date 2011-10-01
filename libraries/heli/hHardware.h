@@ -77,7 +77,7 @@ void rotorRev(){
 }
 
 void rotorStop(){
-  Serial.println("rotorStop()");
+  //Serial.println("rotorStop()");
   digitalWrite(in2Pin, LOW);
   digitalWrite(in1Pin, LOW);  
   analogWrite(tailSpeedPin, 0);
@@ -93,8 +93,8 @@ int M2Speed = MOTORMIN;
 
 void SpinLeft(){
   
-  if((M1Speed+40) < MOTORMAX){
-    M1Speed += 40;
+  if((M1Speed+20) < MOTORMAX){
+    M1Speed += 20;
   }else{
     M1Speed = MOTORMAX;
   }
